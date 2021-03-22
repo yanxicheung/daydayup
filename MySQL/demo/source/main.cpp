@@ -19,6 +19,13 @@ int main(int argc, char **argv)
 
     db.ROLE(StudentsTable).createTable();
 
+    db.ROLE(StudentsTable).add(student(1, 1, "daniel", 'M', 90));
+
+    db.ROLE(StudentsTable).modify(student(1, 1, "daniel", 'M', 95));
+
+    db.ROLE(StudentsTable).remove(student(1, 1, "daniel", 'M', 95));
+
+    db.ROLE(StudentsTable).destoryTable();
     system("pause");
     return 0;
 }
