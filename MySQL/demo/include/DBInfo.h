@@ -14,7 +14,7 @@ struct DBInfo
     void setUserName(const S8 *user);
     void setPassword(const S8 *password);
     void setDBName(const S8 *name);
-    void setHost(const S8 *user);
+	void setHost(const S8 *dbHost);
     void setPort(U16 port);
 
     S8 userName[MAX_LEN_USER_NAME];  // µÇÂ½ÓÃ»§Ãû

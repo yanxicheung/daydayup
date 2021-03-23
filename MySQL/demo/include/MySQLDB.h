@@ -11,7 +11,8 @@ struct MySQLDB: private StudentsTable
     static MySQLDB& getInstance();
     void disconnect();
     bool connect(const DBInfo &dbInfo);
-
+	bool createDataBase(const char *name);
+	bool isTableExist(const char *name);
     IMPL_ROLE(StudentsTable)
 private:
     MYSQL *getHandle() override;
@@ -21,6 +22,7 @@ private:
     MySQLDB& operator=(const MySQLDB&);
 private:
     MYSQL *handle;
+	DBInfo dbInfo;
 };
 
 #endif

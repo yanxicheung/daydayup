@@ -22,12 +22,12 @@ void DBInfo::setDBName(const S8 *name)
     STRNCPY(dBName, name, sizeof(dBName));
 }
 
-void DBInfo::setHost(const S8 *user)
+void DBInfo::setHost(const S8 *dbHost)
 {
-    STRNCPY(host, user, sizeof(host));
+    STRNCPY(host, dbHost, sizeof(host));
 }
 
 void DBInfo::setPort(U16 port)
 {
-    port = port;
+    this->port = port;
 }
