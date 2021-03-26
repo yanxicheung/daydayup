@@ -75,7 +75,7 @@ struct TcpServer
 		WSACleanup();
 	}
 private:
-	SOCKET serverSocket;
+	SOCKET serverSocket;  // 监听套接字;
 };
 
 DWORD WINAPI clientThread(void *args)
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 	server.socketInit();
 	while (true)
 	{
-		SOCKET clientSocket;
+		SOCKET clientSocket;  // 客户端连接的套接字;
 		if (server.socketListen(clientSocket))
 		{
 			HANDLE hThread;
