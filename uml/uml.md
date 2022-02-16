@@ -48,7 +48,7 @@ private:
 
 
 
-![generalization](./pic/generalization.jpg)
+![generalization](pic/generalization.jpg)
 
 
 
@@ -108,7 +108,7 @@ private:
 
 
 
-![Realization](./pic/Realization.jpg)
+![Realization](pic/Realization.jpg)
 
 
 
@@ -131,7 +131,7 @@ private:
 
 
 
-![body](./pic/body.jpg)
+![body](pic/body.jpg)
 
 
 
@@ -144,7 +144,7 @@ class 公司:private 部门1, private 部门2, private 部门n
 }
 ```
 
-![company](./pic/company.jpg)
+![company](pic/company.jpg)
 
 
 
@@ -189,7 +189,7 @@ private:
 
 
 
-![family](./pic/family.jpg)
+![family](pic/family.jpg)
 
 
 
@@ -211,7 +211,7 @@ public:
 
 
 
-![dependency](./pic/dependency.jpg)
+![dependency](pic/dependency.jpg)
 
 
 
@@ -219,7 +219,7 @@ public:
 
 给个实际项目中的代码组织：
 
-![msplib](./pic/msplib.png)
+![msplib](pic/msplib.png)
 
 
 
