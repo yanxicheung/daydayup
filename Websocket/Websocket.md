@@ -16,7 +16,7 @@ WebSocket基于tcp，先通过HTTP/HTTPS协议发起一条特殊的http请求进
 
  WebSocket的最大特点就是，服务器可以主动向客户端推送信息，客户端也可以主动向服务器发送信息，是真正的双向平等对话，属于[服务器推送技术](https://en.wikipedia.org/wiki/Push_technology)的一种。
 
-![image-20210309134650418](.\res\websocket.png)
+![image-20210309134650418](res/websocket.png)
 
 其他特点包括：
 
@@ -36,7 +36,7 @@ WebSocket基于tcp，先通过HTTP/HTTPS协议发起一条特殊的http请求进
 
 ## 协议格式：
 
-![image-20210309134538053](.\res\wsProtocl.png)
+![image-20210309134538053](res/wsProtocl.png)
 
 ## 连接：
 
@@ -47,19 +47,19 @@ websocket连接时使用HTTP协议，但是在建立连接之后，真正的数�
 2、服务器给客户端 switching protocol
 3、就进行了webSocket的通信了
 
-![image-20210309135007280](.\res\wsConnect.png)
+![image-20210309135007280](res/wsConnect.png)
 
 ## 保活：
 
 目前都是服务端ping客户端，客户端pong，然后服务端akc，说明成功接收了WebSocket的Pong回复包。
 
-![img](.\res\keepAlive.png)
+![img](res/keepAlive.png)
 
 ## 断开：
 
 客户端主动断开：
 
-![image-20210309135607729](.\res\wsDisconnect.png)
+![image-20210309135607729](res/wsDisconnect.png)
 
 ## libwebsocket：
 

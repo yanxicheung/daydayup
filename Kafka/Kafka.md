@@ -8,7 +8,7 @@ producers和consumers可以同时从多个topic读写数据。
 
 一个kafka集群由一个或多个broker服务器组成，它负责持久化和备份具体的kafka消息。
 
-![架构](.\res\pic\架构.jpg)
+![架构](res/pic/架构.jpg)
 
 - topic：消息存放的目录即主题
 - producer：生产消息到topic的一方
@@ -63,7 +63,7 @@ bin/kafka-topics.sh --list --zookeeper localhost:2181
 bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
 ```
 
-![生产者](.\res\pic\producer.png)
+![生产者](res/pic/producer.png)
 
 
 
@@ -73,7 +73,7 @@ bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
 bin/kafka-console-consumer.sh --zookeeper localhost:2181 --topic test --from-beginning
 ```
 
-![消费者](.\res\pic\consumer.png)
+![消费者](res/pic/consumer.png)
 
 
 
@@ -117,7 +117,7 @@ bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
 ```
 
 在命令行里发送消息。我们编写的客户端作为消费者，从kafka读取消息。效果如下：
-![result](.\res\pic\result.png)
+![result](res/pic/result.png)
 
 客户端消费者代码如下：
 
@@ -353,7 +353,25 @@ int main(int argc, char **argv) {
 
 
 
+1、一个消费者只能属于一个消费者组
+2、消费者组订阅的topic只能被其中的一个消费者消费
+3、不同消费者组中的消费者可以消费同一个topic
+4、消费者组中的消费者实例个数不能超过分区的数量
+假设分区数量设置为1，消费者实例设置为2，这个时候会发现只有1个消费者在消费消息，另一个消费者闲置。
 
+
+
+如果所有的消费者实例在同⼀消费组中，消息记录会负载平衡到每⼀个消费者实例.
+
+如果所有的消费者实例在不同的消费组中，每条消息记录会⼴播到所有的消费者进程.
+
+
+
+同一个消费组者的消费者可以消费同一topic下不同分区的数据，但是不会组内多个消费者消费同一分区的数据！！！
+
+
+
+　Broker：Broker是kafka实例，每个服务器上有一个或多个kafka的实例，我们姑且认为每个broker对应一台服务器。每个kafka集群内的broker都有一个不重复的编号，如图中的broker-0、broker-1等……
 
 # 参考文献：
 
@@ -363,6 +381,12 @@ int main(int argc, char **argv) {
 4. [kafka端口号修改](https://blog.csdn.net/lizz861109/article/details/109093852)
 5. [apach kafka quickstart](http://kafka.apache.org/082/documentation.html#quickstart)
 6. [kafka C++客户端使用](https://www.jianshu.com/p/6aaec5bf00c2)
+7. [Kafka之消费者组（Consumer Group）命令 - 李清灿的开发笔记 (qclog.cn)](http://qclog.cn/1163)
+8. [再过半小时，你就能明白kafka的工作原理了 - 苏苏喂苏苏+ - 博客园 (cnblogs.com)](https://www.cnblogs.com/sujing/p/10960832.html)
+9. [(38条消息) kafka原理系列之（一）消息存储和offset提交机制_sheep8521的博客-CSDN博客](https://blog.csdn.net/sheep8521/article/details/89491372)
+10. [(38条消息) kafka系列-进阶篇之消息和offset存储_马各马它-CSDN博客](https://blog.csdn.net/camel84/article/details/82433075)
+11. [Kafka文件存储机制 - SegmentFault 思否](https://segmentfault.com/a/1190000021824942?utm_source=tag-newest)
+12. [kafka enable.auto.commit和auto.offset.reset使用说明 - 简书 (jianshu.com)](https://www.jianshu.com/p/1120caeb2905)
 
 
 
