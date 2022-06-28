@@ -611,7 +611,20 @@ done
 
 echo ${index[0]}   # 引用
 echo "len = ${#index[@]}"
+
+
+function printarray(){
+	arr=$1
+	for i in ${arr[@]};do
+		echo $i
+	done
+}
+
+echo "================="
+printarray "${index[*]}"   #向函数传递数组
 ```
+
+
 
 # 字符串
 
