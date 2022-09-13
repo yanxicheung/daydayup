@@ -49,8 +49,8 @@ void signal_handler(int signo)
 int main(int argc, char **argv)
 {
 	printf("hello world\n");
-   signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */    
-   segmentfault();
+    signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */    
+    segmentfault();
 	while(1);
 	return 0;
 }

@@ -1,6 +1,6 @@
 # 背景
 
-最近项目中用到了一个库，在程序崩溃时可以生成`exception`文件，记录程序崩溃时的调用信息，对于定位问题比较有价值，因此整理下这个库涉及到的知识点。相关测试代码已经放到`github`可以下载调试。
+最近项目中用到了一个库，在程序崩溃时可以生成`exception`文件，记录程序崩溃时的调用信息，对于定位问题比较有价值，因此整理下这个库涉及到的知识点。相关测试代码已经放到[`github`](https://github.com/yanxicheung/daydayup/tree/main/Debug/Linux)可以下载调试。
 
 
 
@@ -74,7 +74,7 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0  [vsyscall]
 
 
 
-## 信号
+## signal
 
 ​        `Linux`中的信号是一种消息处理机制, 它本质上是一个整数，不同的信号对应不同的值，由于信号的结构简单所以天生不能携带很大的信息量，但是信号在系统中的优先级是非常高的。
 
@@ -194,6 +194,12 @@ int main()
 
 `00000000000006da`是函数的地址，`<swap>`是函数名，整个汇编文件分为三列，分别是指令地址、指令机器码、指令机器码反汇编得到的指令。
 
+## strip
+
+实际项目中，许多组件编译后，都会使用`strip`命令减小目标文件的大小，处理后的文件依然可以正常运行，但是其中的符号信息（比如函数名）会失去。出问题后不利于定位。
+
+解决方法是在编译（`gcc -c`）阶段加入`-rdynamic`选项，此方法会将函数名加入到`*.dyn`节中，`strip`对其无效。
+
 ## backtrace
 
 在Linux上的C/C++编程环境下，我们可以通过如下三个函数来获取程序的调用栈信息。
@@ -224,17 +230,183 @@ void backtrace_symbols_fd(void *const *array, int size, int fd);
 
 # 崩溃定位
 
-在程序崩溃时，系统会发送信号，在注册的信号处理函数中，将进程的`maps`文件保存下来，同时记录此时的函数调用链和`PC`指针，利用这些信息就可以进行故障定位。这里
+在程序崩溃时，系统会发送信号，在注册的信号处理函数中，将进程的`maps`文件保存下来，同时记录此时的函数调用链，利用这些信息就可以进行故障定位。前提是需要添加编译选项`-g`（不加也没事，不过用`addr2line`获得崩溃代码的行号需要），链接选项`-rdynamic`（**一定要加**） 。
+
+## 在可执行文件中崩溃
+
+在64位`Linux`上编译运行`example`下的`test`，程序崩溃：
+
+```shell
+hello world
+segmentfault addr 0x55daa333903e
+=========>>>maps <<<=========
+55daa3338000-55daa333a000 r-xp 00000000 08:01 24786361  /example/test
+55daa3539000-55daa353a000 r--p 00001000 08:01 24786361  /example/test
+55daa353a000-55daa353b000 rw-p 00002000 08:01 24786361  /example/test
+55daa3e40000-55daa3e61000 rw-p 00000000 00:00 0         [heap]
+7f09107eb000-7f09109d2000 r-xp 00000000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f09109d2000-7f0910bd2000 ---p 001e7000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f0910bd2000-7f0910bd6000 r--p 001e7000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f0910bd6000-7f0910bd8000 rw-p 001eb000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f0910bd8000-7f0910bdc000 rw-p 00000000 00:00 0 
+7f0910bdc000-7f0910c03000 r-xp 00000000 08:01 10490421  /lib/x86_64-linux-gnu/ld-2.27.so
+7f0910de4000-7f0910de6000 rw-p 00000000 00:00 0 
+7f0910e03000-7f0910e04000 r--p 00027000 08:01 10490421  /lib/x86_64-linux-gnu/ld-2.27.so
+7f0910e04000-7f0910e05000 rw-p 00028000 08:01 10490421  /lib/x86_64-linux-gnu/ld-2.27.so
+7f0910e05000-7f0910e06000 rw-p 00000000 00:00 0 
+7ffc3e767000-7ffc3e788000 rw-p 00000000 00:00 0         [stack]
+7ffc3e79e000-7ffc3e7a1000 r--p 00000000 00:00 0         [vvar]
+7ffc3e7a1000-7ffc3e7a3000 r-xp 00000000 00:00 0         [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
+
+=========>>>catch signal 11 <<<=========   # 信号11是段错误
+Dump stack start...
+backtrace() returned 7 addresses
+  [00] ./test(dump+0x2e) [0x55daa3338d98]
+  [01] ./test(signal_handler+0xb8) [0x55daa3338f2a]
+  [02] /lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7f0910829f20]
+  [03] ./test(segmentfault+0x3a) [0x55daa3339078]   #这里崩溃
+  [04] ./test(main+0x36) [0x55daa3338f9c]
+  [05] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xe7) [0x7f091080cb97]
+  [06] ./test(_start+0x2a) [0x55daa3338c8a]
+Dump stack end...
+Segmentation fault (core dumped)
+```
 
 
 
-maps文件
+由于64位系统运行的可执行文件的[符号表](https://so.csdn.net/so/search?q=符号表&spm=1001.2101.3001.7020)地址和实际运行时地址差异甚大。
 
-backtrace
+崩溃地址`0x55daa3339078`是动态映射的虚拟地址，该虚拟地址是通过符号表地址+该代码段映射区间（maps里面有）的地址得来的。
 
-PC指针
+`0x55daa3339078`落在区间`55daa3338000-55daa333a000`
+
+得到真正的符号表地址`0x55daa3339078`-`0x55daa3338000`=`0x1078`
+
+```
+daniel@daniel:~/example$  addr2line -e test 1078
+～/example/calc.c:44
+```
+
+32位系统显示的是实际地址，可以不用转换。
 
 
+
+上面是获得符号表地址的一种方法，也可以使用`objdump -d test`将`test`反汇编找到`segmentfault`的地址:
+
+```shell
+000000000000103e <segmentfault>:
+    103e:	55                   	push   %rbp
+    103f:	48 89 e5             	mov    %rsp,%rbp
+    1042:	48 83 ec 10          	sub    $0x10,%rsp
+    1046:	48 8d 35 f1 ff ff ff 	lea    -0xf(%rip),%rsi   # 103e <segmentfault>
+    104d:	48 8d 3d b1 01 00 00 	lea    0x1b1(%rip),%rdi  # 1205 <_IO_stdin_used+0xe5>
+    1054:	b8 00 00 00 00       	mov    $0x0,%eax
+    1059:	e8 a2 fb ff ff       	callq  c00 <printf@plt>
+    105e:	c7 45 f0 0a 00 00 00 	movl   $0xa,-0x10(%rbp)
+    1065:	c7 45 f4 00 00 00 00 	movl   $0x0,-0xc(%rbp)
+    106c:	48 c7 45 f8 00 00 00 	movq   $0x0,-0x8(%rbp)
+    1073:	00 
+    1074:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
+    1078:	c7 00 01 00 00 00    	movl   $0x1,(%rax)
+    107e:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
+    1082:	8b 10                	mov    (%rax),%edx
+    1084:	8b 45 f0             	mov    -0x10(%rbp),%eax
+    1087:	01 d0                	add    %edx,%eax
+    1089:	89 45 f4             	mov    %eax,-0xc(%rbp)
+    108c:	8b 45 f4             	mov    -0xc(%rbp),%eax
+    108f:	c9                   	leaveq 
+    1090:	c3                   	retq   
+    1091:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    1098:	00 00 00 
+    109b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+```
+
+真正的符号表地址为`000000000000103e` + `0x3a` = `0x1078`
+
+
+
+## 在动态库中崩溃
+
+```shell
+hello world
+add(1,2)=3
+segmentfault addr 0x7f7335fb483a
+
+=========>>>maps <<<=========
+5631f8167000-5631f8169000 r-xp 00000000 08:01 24786364     /example/test_dynamic
+5631f8368000-5631f8369000 r--p 00001000 08:01 24786364     /example/test_dynamic
+5631f8369000-5631f836a000 rw-p 00002000 08:01 24786364     /example/test_dynamic
+5631f8706000-5631f8727000 rw-p 00000000 00:00 0            [heap]
+7f7335bc3000-7f7335daa000 r-xp 00000000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f7335daa000-7f7335faa000 ---p 001e7000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f7335faa000-7f7335fae000 r--p 001e7000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f7335fae000-7f7335fb0000 rw-p 001eb000 08:01 10490449  /lib/x86_64-linux-gnu/libc-2.27.so
+7f7335fb0000-7f7335fb4000 rw-p 00000000 00:00 0 
+7f7335fb4000-7f7335fb5000 r-xp 00000000 08:01 24786363  /example/libcalc.so
+7f7335fb5000-7f73361b4000 ---p 00001000 08:01 24786363  /example/libcalc.so
+7f73361b4000-7f73361b5000 r--p 00000000 08:01 24786363  /example/libcalc.so
+7f73361b5000-7f73361b6000 rw-p 00001000 08:01 24786363   /example/libcalc.so
+7f73361b6000-7f73361dd000 r-xp 00000000 08:01 10490421   /lib/x86_64-linux-gnu/ld-2.27.so
+7f73363bb000-7f73363be000 rw-p 00000000 00:00 0 
+7f73363db000-7f73363dd000 rw-p 00000000 00:00 0 
+7f73363dd000-7f73363de000 r--p 00027000 08:01 10490421   /lib/x86_64-linux-gnu/ld-2.27.so
+7f73363de000-7f73363df000 rw-p 00028000 08:01 10490421   /lib/x86_64-linux-gnu/ld-2.27.so
+7f73363df000-7f73363e0000 rw-p 00000000 00:00 0 
+7fffe6dfd000-7fffe6e1e000 rw-p 00000000 00:00 0                          [stack]
+7fffe6fd4000-7fffe6fd7000 r--p 00000000 00:00 0                          [vvar]
+7fffe6fd7000-7fffe6fd9000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+
+=========>>>catch signal 11 <<<=========   # 信号11是段错误
+Dump stack start...
+backtrace() returned 7 addresses
+  [00] ./test_dynamic(dump+0x2e) [0x5631f8167cc8]
+  [01] ./test_dynamic(signal_handler+0xb8) [0x5631f8167e5a]
+  [02] /lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7f7335c01f20]
+  [03] ./libcalc.so(segmentfault+0x3d) [0x7f7335fb4877]   #在动态库里面崩溃
+  [04] ./test_dynamic(main+0x58) [0x5631f8167eee]
+  [05] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xe7) [0x7f7335be4b97]
+  [06] ./test_dynamic(_start+0x2a) [0x5631f8167bba]
+Dump stack end...
+Segmentation fault (core dumped)
+```
+
+同样地获得符号表地址：`0x7f7335fb4877 - 0x7f7335fb4000 = 0x877`
+
+```shell
+daniel@daniel:~/example$ addr2line -e libcalc.so 877
+/example/calc.c:44
+```
+
+`objdump -d libcalc.so`获得`segmentfault`符号地址`000000000000083a`，加上偏移`0x3d`得到 `0x877`
+
+```shell
+000000000000083a <segmentfault>:
+ 83a:	55                   	push   %rbp
+ 83b:	48 89 e5             	mov    %rsp,%rbp
+ 83e:	48 83 ec 10          	sub    $0x10,%rsp
+ 842:	48 8b 05 9f 07 20 00 	mov    0x20079f(%rip),%rax        # 200fe8 <segmentfault@@Base+0x2007ae>
+ 849:	48 89 c6             	mov    %rax,%rsi
+ 84c:	48 8d 3d 46 00 00 00 	lea    0x46(%rip),%rdi        # 899 <_fini+0x9>
+ 853:	b8 00 00 00 00       	mov    $0x0,%eax
+ 858:	e8 43 fe ff ff       	callq  6a0 <printf@plt>
+ 85d:	c7 45 f0 0a 00 00 00 	movl   $0xa,-0x10(%rbp)
+ 864:	c7 45 f4 00 00 00 00 	movl   $0x0,-0xc(%rbp)
+ 86b:	48 c7 45 f8 00 00 00 	movq   $0x0,-0x8(%rbp)
+ 872:	00 
+ 873:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
+ 877:	c7 00 01 00 00 00    	movl   $0x1,(%rax)
+ 87d:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
+ 881:	8b 10                	mov    (%rax),%edx
+ 883:	8b 45 f0             	mov    -0x10(%rbp),%eax
+ 886:	01 d0                	add    %edx,%eax
+ 888:	89 45 f4             	mov    %eax,-0xc(%rbp)
+ 88b:	8b 45 f4             	mov    -0xc(%rbp),%eax
+ 88e:	c9                   	leaveq 
+ 88f:	c3                   	retq   
+
+```
 
 
 
@@ -247,6 +419,7 @@ PC指针
 5. [Linux信号处理程序的一个应用定位故障](https://blog.csdn.net/qq_34999565/article/details/112342905)
 6. [在Linux中如何利用backtrace信息解决问题](https://blog.csdn.net/jxgz_leo/article/details/53458366)
 7. [objdump(Linux)反汇编命令使用指南](https://blog.csdn.net/qq_45477402/article/details/124450645)
-8. [backtrace实现原理](https://blog.csdn.net/kz01081/article/details/103265807)
 9. [addr2line 动态库](https://blog.csdn.net/qq_39852676/article/details/122523274)
+9. [linux64位系统 addr2line使用](https://blog.csdn.net/C_Creator/article/details/125172325)
+10. [strip命令介绍](https://blog.csdn.net/tjcwt2011/article/details/122068913)
 

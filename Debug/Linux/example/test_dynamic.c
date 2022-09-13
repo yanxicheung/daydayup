@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 {
 	printf("hello world\n");
 	printf("add(1,2)=%d\n", add(1,2));
-   signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */    
+    signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */    
 	segmentfault();
 	while(1);
 	return 0;

@@ -36,6 +36,7 @@ void double_free(char* p)
 
 int segmentfault()
 {
+	printf("segmentfault addr %p\n", segmentfault);
 	int num = 10;
 	int ret = 0x00;  
     int *pTemp = NULL;  

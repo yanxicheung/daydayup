@@ -1,7 +1,6 @@
 CC=gcc
-CFLAGS += -g -I.
-LDFLAGS += -rdynamic   #-rdynamic是链接选项不是编译选项,在编译时添加无效
-#LDFLAGS += -ldl -lrt -lpthread
+CFLAGS += -g -I. -rdynamic  # 编译时加入-rdynamic可以防止strip将符号信息优化掉
+LDFLAGS += -rdynamic        # 链接时只有加上-rdynamic才能将所有非静态函数加到动态符号表中,否在backtrace无法堆栈回溯
 .PHONY: all
 
 #要放第一行,makefile默认执行第一个target
@@ -22,7 +21,7 @@ test:test.o calc.o
 	$(CC) $(LDFLAGS) test.o  calc.o -o test
 ##############################################	
 libcalc.so:
-	$(CC) -shared -fPIC calc.c -o libcalc.so
+	$(CC) -shared -fPIC -g calc.c -o libcalc.so   #addr2line需要加入-g
 	
 test_dynamic.o:
 	$(CC) $(CFLAGS) -c test_dynamic.c -o test_dynamic.o
