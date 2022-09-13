@@ -1,0 +1,44 @@
+CC=gcc
+CFLAGS += -g -I. -rdynamic  # 编译时加入-rdynamic可以防止strip将符号信息优化掉
+LDFLAGS += -rdynamic        # 链接时只有加上-rdynamic才能将所有非静态函数加到动态符号表中,否在backtrace无法堆栈回溯
+.PHONY: all
+
+#要放第一行,makefile默认执行第一个target
+all:test test_dynamic test_static libcalc.so libcalc.a mapstest signal
+##############################################
+mapstest:
+	$(CC) maps_test.c -o mapstest
+signal:
+	$(CC) signal.c -o signal
+##############################################
+test:
+	$(CC) $(LDFLAGS) test.c calc.c -o test
+##############################################	
+libcalc.so:
+	$(CC) -shared -fPIC -g calc.c -o libcalc.so   #addr2line需要加入-g
+
+#加上-Wl,-rpath=.   后就不用在运行前export LD_LIBRARY_PATH了
+test_dynamic:libcalc.so
+	$(CC) $(LDFLAGS) test_dynamic.c -L. -lcalc  -Wl,-rpath=. -o test_dynamic
+
+##############################################
+calc.o:
+	$(CC) $(CFLAGS) -c calc.c -o calc.o
+#静态库只是把一堆.o文件打了个包
+libcalc.a:calc.o
+	ar rcs libcalc.a calc.o
+
+test_static:libcalc.a
+	$(CC) $(CFLAGS) test_static.c  libcalc.a -o test_static
+	
+cleantmp:
+	rm -rf *.o
+
+clean:
+	rm -rf test \
+	       test_dynamic libcalc.so\
+	       calc.o  libcalc.a test_static \
+	       mapstest \
+           signal
+
+
