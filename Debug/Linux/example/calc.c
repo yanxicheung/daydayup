@@ -33,3 +33,16 @@ void double_free(char* p)
 		free(p);
 	}
 }
+
+int segmentfault()
+{
+	int num = 10;
+	int ret = 0x00;  
+    int *pTemp = NULL;  
+      
+    *pTemp = 0x01;  /* 这将导致一个段错误，致使程序崩溃退出 */  
+      
+    ret = num + *pTemp;  
+      
+    return ret;  
+}
