@@ -58,6 +58,63 @@ command：该target要执行的命令（任意的shell命令），***一定要�
 
 这就是makefile的规则，也就是makefile中最核心的内容。
 
+## 静态模式：
+
+静态模式可以更加容易地定义多目标的规则，可以让我们的规则变得更加的有弹性和灵活。我们还是先来看一下语法：
+
+```shell
+<targets ...> : <target-pattern> : <prereq-patterns ...>
+    <commands>
+    ...
+```
+
+例子如下：
+
+```Makefile
+objects = foo.o bar.o
+
+all: $(objects)
+
+$(objects): %.o: %.c
+    $(CC) -c $(CFLAGS) $< -o $@
+```
+
+如果我们的 `%.o` 有几百个，静态模式规则可以写完一堆规则，实在是太有效率了。
+
+## 同名目标：
+
+```Makefile
+target1: dep1
+
+target1: dep2
+	cmd2
+```
+
+这种情况下，这两个相同的target1会被合并成:
+
+```Makefile
+target1: dep1 dep2
+	cmd2
+```
+
+但如果第一条规则本身也带一个命令的话， makefile就无法合并， 给出警告，并用后面的规则替代前面的规则:
+
+```makefile
+target1: dep1
+	cmd1
+target1: dep2
+	cmd2
+```
+
+最后生成的是, 其实就是后一条替代了前一条，然后给出警告：
+
+```makefile
+target1: dep2
+	cmd2
+```
+
+可以参考[Makefile 的重复目标-arley-ChinaUnix博客](http://blog.chinaunix.net/uid-21778123-id-1815467.html)
+
 ## 常用函数：
 
 函数调用，很像变量的使用，也是以 `$` 来标识的，其语法如下：
@@ -113,7 +170,7 @@ ${<function> <arguments>}
 
 **名称**：用来做循环用
 
-**功能**：这个函数的意思是，把参数 `` 中的单词逐一取出放到参数 `` 所指定的变量中，然后再执行 `` 所包含的表达式。每一次 `` 会返回一个字符串，循环过程中， `` 的所返回的每个字符串会以空格分隔，最后当整个循环结束时， `` 所返回的每个字符串所组成的整个字符串（以空格分隔）将会是foreach函数的返回值。
+**功能**：这个函数的意思是，把参数 `` 中的单词逐一取出放到参数 `` 所指定的变量中，然后再执行 `` 所包含的表达式。每一次 `` 会返回一个字符串，循环过程中， `` 的所返回的每个字符串会以空格分隔，最后当整个循环结束时， `` 所返回的每个字符串所组成的整个字符串（以空格分隔）将会是`foreach`函数的返回值。
 
 **示例**：
 
@@ -122,7 +179,7 @@ names := a b c d
 files := $(foreach n,$(names),$(n).o)
 ```
 
-上面的例子中， `$(name)` 中的单词会被挨个取出，并存到变量 `n` 中， `$(n).o` 每次根据 `$(n)` 计算出一个值，这些值以空格分隔，最后作为foreach函数的返回，所以， `$(files)` 的值是 `a.o b.o c.o d.o` 。
+上面的例子中， `$(name)` 中的单词会被挨个取出，并存到变量 `n` 中， `$(n).o` 每次根据 `$(n)` 计算出一个值，这些值以空格分隔，最后作为`foreach`函数的返回，所以， `$(files)` 的值是 `a.o b.o c.o d.o` 。
 
 ### info
 
@@ -131,6 +188,44 @@ files := $(foreach n,$(names),$(n).o)
 **功能**：打印处text的内容，相当于printf，常用于调试
 
 **示例**：$(info "some text")打印 "some text"
+
+
+
+### filter
+
+**格式**：$(filter SUFFIX…,$(SOURCES))
+
+**功能**：目标串中找出符合匹配规则的
+
+**示例**：
+
+```makefile
+sources := foo.c bar.c baz.s ugh.h 
+foo: $(sources) 
+cc $(filter %.c %.s,$(sources)) -o foo 
+
+#使用“$(filter %.c %.s,$(sources))”的返回值给 cc 来编译生成目标“foo”，函数返回
+#值为“foo.c bar.c baz.s” 
+```
+
+
+
+### filter-out
+
+**格式**：$(filter-out SUFFIX…,$(SOURCES))
+
+**功能**：从目标串中过滤掉符合匹配规则的
+
+**示例**：
+
+```Makefile
+objects=main1.o foo.o main2.o bar.o 
+mains=main1.o main2.o 
+$(filter-out $(mains),$(objects)) 
+
+#实现了去除变量“objects”中“mains”定义的字串（文件名）功能。它的返回值
+#为“foo.o bar.o”。
+```
 
 
 
@@ -143,6 +238,43 @@ $^ ：表示所有的依赖文件
 $< ：表示第一个依赖文件
 
 $? ：表示比目标还要新的依赖文件列表
+
+
+
+## 目标变量：
+
+为某个目标设置局部变量，这种变量被称为“Target-specific Variable”，它可以和“全局变量”同名，因为它的作用范围只在这条规则以及连带规则中，所以其值也只在作用范围内有效。而不会影响规则链以外的全局变量的值。
+
+其语法是：
+
+```
+<target ...> : <variable-assignment>;
+
+<target ...> : overide <variable-assignment>
+```
+
+`variable-assignment`;可以是前面讲过的各种赋值表达式，如 `=` 、 `:=` 、 `+=` 或是 `?=` 。第二个语法是针对于make命令行带入的变量，或是系统环境变量。
+
+这个特性非常的有用，当我们设置了这样一个变量，这个变量会作用到由这个目标所引发的所有的规则中去。如：
+
+```Makefile
+prog : CFLAGS = -g
+prog : prog.o foo.o bar.o
+    $(CC) $(CFLAGS) prog.o foo.o bar.o
+
+prog.o : prog.c
+    $(CC) $(CFLAGS) prog.c
+
+foo.o : foo.c
+    $(CC) $(CFLAGS) foo.c
+
+bar.o : bar.c
+    $(CC) $(CFLAGS) bar.c
+```
+
+在这个示例中，不管全局的 `$(CFLAGS)` 的值是什么，在prog目标，以及其所引发的所有规则中（prog.o foo.o bar.o的规则）， `$(CFLAGS)` 的值都是 `-g`。
+
+还有一个具体的示例：[recipes/Makefile at master · chenshuo/recipes (github.com)](https://github.com/chenshuo/recipes/blob/master/thread/Makefile)
 
 
 
@@ -386,4 +518,5 @@ prog3 : prog3.o sort.o utils.o
 5. [Makefile 中:= ?= += =的区别](https://www.cnblogs.com/zgq0/p/8716150.html)
 6. [Makefile的静态模式%.o : %.c](https://blog.csdn.net/u012351051/article/details/88600562)
 7. [makefile内置变量及自动变量](https://blog.csdn.net/hejinjing_tom_com/article/details/40781787)
+8. [Makefile 语法及使用笔记_丨匿名用户丨的博客-CSDN博客_makefile判断文件大小](https://blog.csdn.net/p1279030826/article/details/126011392)
 
