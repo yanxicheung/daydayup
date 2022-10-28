@@ -69,9 +69,13 @@ ln -s libtest.so.0.0.0  libtest.so.0
 ln -s libtest.so.0  libtest.so
 ```
 
+使用软链接主要时比较节省磁盘空间，也可以直接将实际的动态库文件拷贝两份，分别重命令为对应的`linkname`和`soname`。
+
 
 
 在可以行文件编译链接动态库时，先通过`linkname`找到最终找到`real name`，并且把其中的`soname`提取出来，写在应用程序自己的文件头的共享库字段里面。
+
+
 
 当应用程序运行时，就会通过`soname`，结合动态链接程序`（ld.so）`，在给定的路径下加载`real name`的共享库。
 
