@@ -35,35 +35,81 @@ https://blog.csdn.net/u010835747/article/details/121902306
 
 
 
+telnet命令
+
+```
+
+```
+
+
+
 命令行解析工具
 
 修改默认json配置
+
+```
+
+```
 
 
 
 Module模块（app）
 
+```
+
+```
+
 
 
 Context
+
+```
+
+```
 
 
 
 EventLoop
 
+```
+signal event
+timer event
+fd event
+
+std::push_heap
+std::make_heap
+std::pop_heap
+```
+
 
 
 定时器
+
+```
+https://blog.csdn.net/hsy12342611/article/details/127964500
+```
 
 
 
 IO事件
 
+```
+
+```
+
 
 
 信号事件（安全使用信号）
 
+```
+
+```
+
 
 
 telnet
+
+```
+
+```
 
